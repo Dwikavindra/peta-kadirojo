@@ -54,6 +54,7 @@ function App() {
     console.log("Removed", newPlaceMarks);
     const builder = new xml2js.Builder();
     const xml = builder.buildObject(xmlParsed);
+    setKMLText(xml);
     console.log("This is the xml ", xml);
     const parser = new DOMParser();
     const kmllocal = parser.parseFromString(xml, "text/xml");
