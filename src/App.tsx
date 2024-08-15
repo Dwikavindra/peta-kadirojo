@@ -301,6 +301,7 @@ function App() {
       <MapContainer
         className="map-container"
         zoom={15}
+        z
         center={[-7.767533, 110.44855]}
         key={kml}
       >
