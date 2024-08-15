@@ -4,12 +4,76 @@ import { MapContainer, TileLayer } from "react-leaflet";
 import ReactLeafletKml from "react-leaflet-kml";
 import xml2js from "xml2js";
 import "leaflet/dist/leaflet.css";
-import { createHash } from "node:crypto";
 
 function App() {
   const [kml, setKml] = useState<any>("");
-  const [kmlText, setKMLText] = useState<string>("");
+  const [kmlJson, setKmlJson] = useState<any>("");
   const [counter, setCounter] = useState(0);
+  const [placemarks, setPlaceMarks] = useState<any>("");
+  const [shownPlaceMarks, setShownPlaceMarks] = useState<any>("");
+  const [checked, setChecked] = useState<any>({
+    rt1: true,
+    rt2: true,
+    rt3: true,
+    rt4: true,
+    rt5: true,
+    rt6: true,
+    rt7: true,
+  });
+
+  const updatePlacemarks = (newChecked: boolean, routeName: string) => {
+    let newShownPlaceMarks;
+
+    if (!newChecked) {
+      newShownPlaceMarks = shownPlaceMarks.filter(
+        (placemark: any) => placemark.name[0] !== routeName
+      );
+    } else {
+      const routePlacemark = placemarks.find(
+        (placemark: any) => placemark.name[0] === routeName
+      );
+      if (
+        !shownPlaceMarks.some(
+          (placemark: any) => placemark.name[0] === routeName
+        ) &&
+        routePlacemark
+      ) {
+        newShownPlaceMarks = [...shownPlaceMarks, routePlacemark];
+      } else {
+        return;
+      }
+    }
+
+    if (newShownPlaceMarks) {
+      const newKMLJSON = {
+        ...kmlJson,
+        kml: {
+          ...kmlJson.kml,
+          Document: [
+            {
+              ...kmlJson.kml.Document[0],
+              Folder: [
+                {
+                  ...kmlJson.kml.Document[0].Folder[0],
+                  Placemark: newShownPlaceMarks,
+                },
+              ],
+            },
+          ],
+        },
+      };
+
+      const builder = new xml2js.Builder();
+      const xml = builder.buildObject(newKMLJSON);
+      const parser = new DOMParser();
+      const newKML = parser.parseFromString(xml, "text/xml");
+
+      setKmlJson(newKMLJSON);
+      setShownPlaceMarks(newShownPlaceMarks);
+      setKml(newKML);
+      setCounter((prevCounter) => prevCounter + 1);
+    }
+  };
 
   useEffect(() => {
     fetch(
@@ -17,50 +81,20 @@ function App() {
     )
       .then((res) => res.text())
       .then((kmlText) => {
-        setKMLText(kmlText);
+        xml2js.parseString(kmlText, (err, result) => {
+          if (err) {
+            console.error("Error parsing XML:", err);
+          } else {
+            setPlaceMarks(result.kml.Document[0].Folder[0].Placemark);
+            setShownPlaceMarks(result.kml.Document[0].Folder[0].Placemark);
+            setKmlJson(result);
+          }
+        });
         const parser = new DOMParser();
-        console.log("Belo is from xml");
         const kml = parser.parseFromString(kmlText, "text/xml");
-        console.log("KML from useEffect", kml);
-        // const geoJSON = geojson.kml(kml);
         setKml(kml);
       });
   }, []);
-
-  const filterKml = (kmlText) => {
-    console.log("Before parseString");
-    xml2js.parseString(kmlText, (err, result) => {
-      if (err) {
-        console.error("Error parsing XML:", err);
-      } else {
-        console.log("Parsed JSON:", JSON.stringify(result));
-        const newKML = parseOnlyPlaceMark(result);
-        console.log("this is newKML", newKML);
-        setKml(newKML);
-        setCounter(counter + 1);
-      }
-    });
-  };
-
-  const parseOnlyPlaceMark = (xmlParsed: any) => {
-    const parsed = xmlParsed.kml.Document[0].Folder[0].Placemark;
-    console.log("this is parsed", parsed);
-    const placeMarks = parsed.filter(
-      (p) => p["Polygon"] !== undefined && p["Polygon"] !== null
-    );
-    console.log(placeMarks);
-    const newPlaceMarks = placeMarks.toSpliced(0, 1);
-    xmlParsed.kml.Document[0].Folder[0].Placemark = newPlaceMarks;
-    console.log("Removed", newPlaceMarks);
-    const builder = new xml2js.Builder();
-    const xml = builder.buildObject(xmlParsed);
-    setKMLText(xml);
-    console.log("This is the xml ", xml);
-    const parser = new DOMParser();
-    const kmllocal = parser.parseFromString(xml, "text/xml");
-    return kmllocal;
-    // setKml(kml);
-  };
   return (
     <div
       key={counter}
@@ -71,15 +105,151 @@ function App() {
       }}
     >
       <div style={{ color: "black" }}>{counter}</div>
-      <button
-        onClick={() => {
-          const RT = filterKml(kmlText);
-        }}
-      >
-        Press filteredKML
-      </button>
+      {/* <button onClick={() => {}}>Press filteredKML</button> */}
+      <div style={{ display: "flex", flexDirection: "row" }}>
+        <div style={{ display: "flex", flexDirection: "row" }}>
+          <input
+            type="checkbox"
+            style={{ color: "white" }}
+            checked={checked.rt1}
+            onChange={(e) => {
+              console.log(e.target.checked);
+              const newChecked = e.target.checked;
+              updatePlacemarks(newChecked, "RT 01");
+              setChecked({ ...checked, rt1: newChecked });
+            }}
+          />
+          <h4>RT 1</h4>
+        </div>
+        <div style={{ display: "flex", flexDirection: "row" }}>
+          <input
+            type="checkbox"
+            style={{ color: "white" }}
+            checked={checked.rt1}
+            onChange={(e) => {
+              console.log(e.target.checked);
+              const newChecked = e.target.checked;
+              updatePlacemarks(newChecked, "RT 2");
+              setChecked({ ...checked, rt1: newChecked });
+            }}
+          />
+          <h4>RT 2</h4>
+        </div>
+        <div style={{ display: "flex", flexDirection: "row" }}>
+          <input
+            type="checkbox"
+            style={{ color: "white" }}
+            checked={checked.rt1}
+            onChange={(e) => {
+              console.log(e.target.checked);
+              const newChecked = e.target.checked;
+              updatePlacemarks(newChecked, "RT 01");
+              setChecked({ ...checked, rt1: newChecked });
+            }}
+          />
+          <h4>RT 3</h4>
+        </div>
+        <div style={{ display: "flex", flexDirection: "row" }}>
+          <input
+            type="checkbox"
+            style={{ color: "white" }}
+            checked={checked.rt1}
+            onChange={(e) => {
+              console.log(e.target.checked);
+              const newChecked = e.target.checked;
+              updatePlacemarks(newChecked, "RT 01");
+              setChecked({ ...checked, rt1: newChecked });
+            }}
+          />
+          <h4>RT 4</h4>
+        </div>
+        <div style={{ display: "flex", flexDirection: "row" }}>
+          <input
+            type="checkbox"
+            style={{ color: "white" }}
+            checked={checked.rt1}
+            onChange={(e) => {
+              console.log(e.target.checked);
+              const newChecked = e.target.checked;
+              updatePlacemarks(newChecked, "RT 01");
+              setChecked({ ...checked, rt1: newChecked });
+            }}
+          />
+          <h4>RT 5</h4>
+        </div>
+        <div style={{ display: "flex", flexDirection: "row" }}>
+          <input
+            type="checkbox"
+            style={{ color: "white" }}
+            checked={checked.rt1}
+            onChange={(e) => {
+              console.log(e.target.checked);
+              const newChecked = e.target.checked;
+              updatePlacemarks(newChecked, "RT 01");
+              setChecked({ ...checked, rt1: newChecked });
+            }}
+          />
+          <h4>RT 6</h4>
+        </div>
+        <div style={{ display: "flex", flexDirection: "row" }}>
+          <input
+            type="checkbox"
+            style={{ color: "white" }}
+            checked={checked.rt1}
+            onChange={(e) => {
+              console.log(e.target.checked);
+              const newChecked = e.target.checked;
+              updatePlacemarks(newChecked, "RT 01");
+              setChecked({ ...checked, rt1: newChecked });
+            }}
+          />
+          <h4>RT 7</h4>
+        </div>
+        <div style={{ display: "flex", flexDirection: "row" }}>
+          <input
+            type="checkbox"
+            style={{ color: "white" }}
+            checked={checked.rt1}
+            onChange={(e) => {
+              console.log(e.target.checked);
+              const newChecked = e.target.checked;
+              updatePlacemarks(newChecked, "RT 01");
+              setChecked({ ...checked, rt1: newChecked });
+            }}
+          />
+          <h4>RT 1</h4>
+        </div>
+        <div style={{ display: "flex", flexDirection: "row" }}>
+          <input
+            type="checkbox"
+            style={{ color: "white" }}
+            checked={checked.rt1}
+            onChange={(e) => {
+              console.log(e.target.checked);
+              const newChecked = e.target.checked;
+              updatePlacemarks(newChecked, "RT 01");
+              setChecked({ ...checked, rt1: newChecked });
+            }}
+          />
+          <h4>RT 1</h4>
+        </div>
+        <div style={{ display: "flex", flexDirection: "row" }}>
+          <input
+            type="checkbox"
+            style={{ color: "white" }}
+            checked={checked.rt1}
+            onChange={(e) => {
+              console.log(e.target.checked);
+              const newChecked = e.target.checked;
+              updatePlacemarks(newChecked, "RT 01");
+              setChecked({ ...checked, rt1: newChecked });
+            }}
+          />
+          <h4>RT 1</h4>
+        </div>
+      </div>
       <MapContainer
-        style={{ height: "90vh", width: "90vw" }}
+        style={{ height: "100vh", width: "100vw" }}
         zoom={15}
         center={[-7.767533, 110.44855]}
         key={kml}
